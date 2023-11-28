@@ -39,8 +39,6 @@ app.get("/urls/:id", (req, res) => {
 app.post("/urls", (req, res) => {
   let id = generateRandomString()
   urlDatabase[id] = req.body.longURL;
-  console.log(urlDatabase);
-  
   res.redirect(`/urls/${id}`); 
 });
 
@@ -51,12 +49,20 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longURL);
 });
 
+// Delete button created for links and deletes from urlDatabase obj
 app.post('/urls/:id/delete', (req, res) => {
   delete urlDatabase[req.params.id];
-  console.log(urlDatabase);
+
   res.redirect('/urls')
 })
 
+// Update URL 
+app.post('/urls/:id', (req, res) => {
+  const id = req.params.id;
+  urlDatabase[id] = req.body.longURL;
+  console.log(urlDatabase);
+  res.redirect('/urls/');
+})
 
 app.get('/', (req, res) => {
   res.send("Hello");
