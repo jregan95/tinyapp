@@ -1,8 +1,10 @@
 const express = require('express');
+const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080;
  
+app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.set("view engine", "ejs");
@@ -17,20 +19,39 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  '24gh67': {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  '67hsy7': {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
 
 
 
 // Posts our long anf short urls to a table
 app.get("/urls", (req, res) => {
-  const exports = { username: req.cookies["username"], urls: urlDatabase };
+  const exports = { username: req.cookies["user_id"].email, urls: urlDatabase };
   res.render("urls_index", exports);
 });
 
 //Gets the page for urls_new
 app.get("/urls/new", (req, res) => {
-  const exports = { username: req.cookies["username"] };
+  const exports = { username: req.cookies["user_id"].email };
   
   res.render("urls_new", exports);
+});
+
+//registration page
+app.get("/urls/register", (req, res) => {
+  const exports = { username: req.cookies["user_id"].email, urls: urlDatabase };
+  res.render("urls_register", exports);
 });
 
 
@@ -74,12 +95,26 @@ app.post('/login', (req, res) => {
   res.redirect('/urls/');
 });
 
+//logs userout and clears the login cookie
 app.post('/logout', (req, res) => {
   res.clearCookie('username');
   res.redirect('/urls/');
 });
 
+app.post('/register', (req, res) => {
+  const randomUserID = generateRandomString()
+  users[randomUserID] = {
+    id: randomUserID, 
+    email: req.body.email, 
+    password: req.body.password
+  };
+  res.cookie('user_id', users[randomUserID])
+  console.log(users)
+  res.redirect('/urls');
 
+})
+
+/////////////////////////////////////////////////////////////////////////////
 //pass the username to all templates
 //app.get("/urls", (req, res) => {
   //const templateVars = {key: 'test'};

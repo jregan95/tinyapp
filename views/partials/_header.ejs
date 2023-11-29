@@ -17,11 +17,13 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        <a class="nav-item nav-link" href="/urls/register">Register</a>
       </div>
         <div class="navbar-nav ml-auto">
         <%if (username) { %>
-          <a>Logged in as: &nbsp; </a>
-          <%= username %>
+          <a class="mt-2">Logged in as: &nbsp; </a>
+          <a class="mt-2"><%= username %> </a>
+          <a> &nbsp; &nbsp; </a>
           <form method="POST" action="/logout">
           <button type="submit" class="btn btn-primary">Logout</button>
           </form>
