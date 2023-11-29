@@ -23,7 +23,6 @@ app.get("/urls", (req, res) => {
 
 //Gets the page for urls_new
 app.get("/urls/new", (req, res) => {
-  console.log(req.body)
   res.render("urls_new");
 });
 
@@ -60,9 +59,24 @@ app.post('/urls/:id/delete', (req, res) => {
 app.post('/urls/:id', (req, res) => {
   const id = req.params.id;
   urlDatabase[id] = req.body.longURL;
-  console.log(urlDatabase);
+  
   res.redirect('/urls/');
 })
+
+app.post('/login', (req, res) => {
+  let loginID = req.body.username
+  res.cookie('username', loginID);
+  res.redirect('/urls/');
+})
+
+
+
+
+
+
+
+
+
 
 app.get('/', (req, res) => {
   res.send("Hello");
