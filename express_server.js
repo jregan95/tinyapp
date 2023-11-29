@@ -1,8 +1,10 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080;
  
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser())
 
 app.set("view engine", "ejs");
 
@@ -17,7 +19,7 @@ const urlDatabase = {
 
 // Posts our long anf short urls to a table
 app.get("/urls", (req, res) => {
-  const urlsTable = { urls: urlDatabase };
+  const urlsTable = { username: req.cookies["username"], urls: urlDatabase };
   res.render("urls_index", urlsTable);
 });
 
@@ -63,11 +65,29 @@ app.post('/urls/:id', (req, res) => {
   res.redirect('/urls/');
 })
 
+//Create a login and save it as a cookie
 app.post('/login', (req, res) => {
   let loginID = req.body.username
   res.cookie('username', loginID);
   res.redirect('/urls/');
 })
+
+app.post('/logout', (req, res) => {
+  res.clearCookie('username')
+  res.redirect('/urls/');
+})
+
+
+//pass the username to all templates
+//app.get("/urls", (req, res) => {
+  //const templateVars = {key: 'test'};
+  //res.render("urls_index", templateVars);
+//});
+
+
+
+
+
 
 
 
