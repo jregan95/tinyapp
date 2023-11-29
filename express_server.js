@@ -48,6 +48,9 @@ const findUserByEmail = (email) => {
 
 // Posts our long anf short urls to a table
 app.get("/urls", (req, res) => {
+  if(!req.cookies["user_id"]) {
+   return res.redirect('/urls/login');
+  }
   const exports = { username: req.cookies["user_id"], urls: urlDatabase };
   res.render("urls_index", exports);
 });
@@ -55,18 +58,27 @@ app.get("/urls", (req, res) => {
 //Gets the page for urls_new
 app.get("/urls/new", (req, res) => {
   const exports = { username: req.cookies["user_id"] };
-  
+  if(!req.cookies["user_id"]) {
+    return res.redirect("/urls/login")
+  }
   res.render("urls_new", exports);
 });
 
 //registration page
 app.get("/urls/register", (req, res) => {
   const exports = { username: req.cookies["user_id"], urls: urlDatabase };
+
+  if(req.cookies["user_id"]) {
+    return res.redirect("/urls/")
+  }
   res.render("urls_register", exports);
 });
 
 app.get("/urls/login", (req, res) => {
   const exports = { username: req.cookies["user_id"], urls: urlDatabase };
+  if(req.cookies["user_id"]) {
+    return res.redirect("/urls/")
+  }
   res.render("urls_login", exports);
 });
 
@@ -80,6 +92,9 @@ app.get("/urls/:id", (req, res) => {
 
 //User inputs url and is redirected to short URL page
 app.post("/urls", (req, res) => {
+  if(!req.cookies["user_id"]) {
+    return res.send("You must log in first");
+   }
   let id = generateRandomString();
   urlDatabase[id] = req.body.longURL;
   res.redirect(`/urls/${id}`);
