@@ -1,7 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
-const {urlDatabase, users} = require('./database')
-
+const {urlDatabase, users} = require('./database');
+const bycrypt = require('bcryptjs');
+const cookieSession = require('cookie-session');
 const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080;
@@ -10,6 +11,15 @@ app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.set("view engine", "ejs");
+app.use(cookieSession({
+  name: 'session',
+  keys: ['purple', 'dog', 'house'],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}))
+
+
 
 // Function to generate random ID for URL / User ID
 const generateRandomString = function() {
@@ -20,10 +30,10 @@ const generateRandomString = function() {
 
 //Function to see if user already is registered in the user database
 const findUserByEmail = (email) => {
-  for (let userId in users) {
-    if (users[userId].email === email) {
+  for (let id in users) {
+    if (users[id].email === email) {
       // user exists
-      return users[userId];
+      return users[id];
     }
   }
   // user does not exist
@@ -41,7 +51,7 @@ const findUserByEmail = (email) => {
 // Posts our long and short urls to a table
 app.get("/urls", (req, res) => {
   //checks if user is not logged in and if not will route them to the login page
-  if(!req.cookies["user_id"]) {
+  if(!req.session.userId) {
    return res.redirect('/urls/login');
   }
 
@@ -49,7 +59,7 @@ app.get("/urls", (req, res) => {
   const urlsForUser = function(data){
     let newObj = {}
     for(let key in urlDatabase) {
-      if(urlDatabase[key].userID === req.cookies["user_id"]) {
+      if(urlDatabase[key].userID === req.session.userId) {
         newObj[key] = urlDatabase[key]
       }
     }
@@ -57,7 +67,7 @@ app.get("/urls", (req, res) => {
   }
   //Execute function to create new database
   const newData = urlsForUser(urlDatabase)
-  const exports = { username: users[req.cookies["user_id"]].email, urls: newData };
+  const exports = { username: users[req.session.userId].email, urls: newData };
   res.render("urls_index", exports);
 });
 
@@ -69,11 +79,11 @@ app.get("/urls", (req, res) => {
 //Gets the page for urls_new
 app.get("/urls/new", (req, res) => {
   //if user is not logged in redirect them to login
-  if(!req.cookies["user_id"]) {
+  if(!req.session.userId) {
     return res.redirect("/urls/login")
   }
 
-  const exports = { username: users[req.cookies["user_id"]].email};
+  const exports = { username: users[req.session.userId].email};
   res.render("urls_new", exports);
 });
 
@@ -83,10 +93,10 @@ app.get("/urls/new", (req, res) => {
 
 //gets the registration page for new users
 app.get("/urls/register", (req, res) => {
-  const exports = { username: users[req.cookies["user_id"]], urls: urlDatabase };
+  const exports = { username: users[req.session.userId], urls: urlDatabase };
   
   //If user is already logged in it sends them to their URLs table
-  if(req.cookies["user_id"]) {
+  if(req.session.userId) {
     return res.redirect("/urls/")
   }
 
@@ -102,7 +112,7 @@ app.get("/urls/login", (req, res) => {
   const exports = { username: users[req.cookies["user_id"]], urls: urlDatabase };
 
   //if user is already logged in it redirects to the URLS table
-  if(req.cookies["user_id"]) {
+  if(req.session.userId) {
     return res.redirect("/urls/")
   }
 
@@ -119,7 +129,7 @@ app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
 
   //If user is not logged in sends a message asking them to login
-  if(!req.cookies["user_id"]){
+  if(!req.session.userId){
     return res.send("You must log in first");
   }
   //If user gives invalid short URL sends message that it does not exist
@@ -127,11 +137,11 @@ app.get("/urls/:id", (req, res) => {
     return res.send("This URL does not exist");
   }
   //If the short URL does not belong to logged in user it tells them with a message
-  if(req.cookies["user_id"] !== urlDatabase[id].userID){
+  if(req.session.userId !== urlDatabase[id].userID){
     return res.send("You do not own this URL");
   }
 
-  const exports = { username: users[req.cookies["user_id"]].email, id: id, longURL: urlDatabase[id].longURL};
+  const exports = { username: users[req.session.userId].email, id: id, longURL: urlDatabase[id].longURL};
   res.render("urls_show", exports);
 });
 
@@ -144,12 +154,12 @@ app.get("/urls/:id", (req, res) => {
 //User inputs url and is redirected to short URL page
 app.post("/urls", (req, res) => {
   //If user is not logged in it asks them to login first
-  if(!req.cookies["user_id"]) {
+  if(!req.session.userId) {
     return res.send("You must log in first");
    }
 
   let id = generateRandomString();
-  urlDatabase[id] = { longURL: req.body.longURL, userID: users[req.cookies['user_id']].id };
+  urlDatabase[id] = { longURL: req.body.longURL, userID: users[req.session.userId].id };
   res.redirect(`/urls/${id}`);
 });
 
@@ -179,11 +189,11 @@ app.post('/urls/:id/delete', (req, res) => {
     return res.send("This URL does not exist");
   }
   //If user is not logged in command line prints error
-  if(!req.cookies["user_id"]){
+  if(!req.session.userId){
     return res.send("You must log in first");
   }
   //If user does not own URL command line prints error
-  if(req.cookies["user_id"] !== urlDatabase[id].userID){
+  if(req.session.userId !== urlDatabase[id].userID){
     return res.send("You do not own this URL");
   }
   //when user clicks it deletes this url from the urlDatabase
@@ -199,7 +209,7 @@ app.post('/urls/:id', (req, res) => {
   const id = req.params.id;
 
   //If user is not logged in commant line prints error
-  if(!req.cookies["user_id"]){
+  if(!req.session.userId){
     return res.send("You must log in first");
   }
 
@@ -209,10 +219,10 @@ app.post('/urls/:id', (req, res) => {
   }
   
   //if user does not own url command line prints error
-  if(req.cookies["user_id"] !== urlDatabase[id].userID){
+  if(req.session.userId !== urlDatabase[id].userID){
     return res.send("You do not own this URL");
   }
-  
+
   urlDatabase[id].longURL = req.body.longURL;
   res.redirect('/urls/');
 });
@@ -229,10 +239,14 @@ app.post('/login', (req, res) => {
   //finds the user in the database
   const userLogin = findUserByEmail(email)
 
-  //If their email and password match it redirects to the urls table 
-  if(userLogin && userLogin.password === password) {
+  if(!userLogin) {
+    res.status(403).send('Not authorized: No user found');
+  }
+
+  //If their  email and password match it redirects to the urls table 
+  if(bycrypt.compareSync(password, userLogin.password)) {
    //saves their login as a cookie
-    res.cookie('user_id', userLogin.id)
+    req.session.userId = userLogin.id;
     console.log(userLogin)
     return res.redirect('/urls/')
   }
@@ -246,7 +260,7 @@ app.post('/login', (req, res) => {
 
 //logs user out and clears the login cookie
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect('/urls/login');
 });
 
@@ -271,14 +285,18 @@ app.post('/register', (req, res) => {
     }
   }
 
+  
+  const salt = bycrypt.genSaltSync(10);
+  const hashed = bycrypt.hashSync(req.body.password, salt);
   //Puts the new user into the users database
   users[randomUserID] = {
     id: randomUserID, 
     email: req.body.email, 
-    password: req.body.password
+    password: hashed
   };
+
   //saves their unique id as a cookie
-  res.cookie('user_id', users[randomUserID].id)
+  req.session.userId = users[randomUserID].id;
   res.redirect('/urls');
 })
 
