@@ -1,16 +1,12 @@
 const express = require('express');
-const morgan = require('morgan');
 const {urlDatabase, users} = require('./database');
 const {generateRandomString, findUserByEmail, urlsForUser} = require('./helper');
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
-const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080;
  
-app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.set("view engine", "ejs");
 app.use(cookieSession({
   name: 'session',
@@ -83,7 +79,7 @@ app.get("/urls/register", (req, res) => {
 
 //gets the login page
 app.get("/urls/login", (req, res) => {
-  const exports = { username: users[req.cookies["user_id"]], urls: urlDatabase };
+  const exports = { username: users[req.session.userId], urls: urlDatabase };
 
   //if user is already logged in it redirects to the URLS table
   if (req.session.userId) {
