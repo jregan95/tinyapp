@@ -1,8 +1,9 @@
 const express = require('express');
 const {urlDatabase, users} = require('./database');
-const {generateRandomString, findUserByEmail, urlsForUser} = require('./helper');
+const {ensureUrlProtocol, generateRandomString, findUserByEmail, urlsForUser} = require('./helper');
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
+const { use } = require('chai');
 const app = express();
 const PORT = 8080;
  
@@ -10,7 +11,7 @@ app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.use(cookieSession({
   name: 'session',
-  keys: ['purple', 'dog', 'house'],
+  keys: ['purple', 'dog', 'cat'],
 
   // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -27,17 +28,16 @@ app.use(cookieSession({
 
 // Posts our long and short urls to a table
 app.get("/urls", (req, res) => {
+  let userCookie = req.session.userId;
+
   //checks if user is not logged in and if not will route them to the login page
-  if (!req.session.userId) {
-    return res.redirect('/urls/login');
+  if (!userCookie) {
+    return res.redirect('/login');
   }
   
-  let cookieId = req.session.userId;
-  
-  
   //Execute function to create new database
-  const newData = urlsForUser(urlDatabase, cookieId);
-  const exports = { username: users[cookieId].email, urls: newData };
+  const newData = urlsForUser(urlDatabase, userCookie);
+  const exports = { username: users[userCookie].email, urls: newData };
   res.render("urls_index", exports);
 });
 
@@ -48,12 +48,13 @@ app.get("/urls", (req, res) => {
 
 //Gets the page for urls_new
 app.get("/urls/new", (req, res) => {
+  const userCookie = req.session.userId;
   //if user is not logged in redirect them to login
-  if (!req.session.userId) {
-    return res.redirect("/urls/login");
+  if (!userCookie) {
+    return res.redirect("/login");
   }
 
-  const exports = { username: users[req.session.userId].email};
+  const exports = { username: users[userCookie].email};
   res.render("urls_new", exports);
 });
 
@@ -62,11 +63,12 @@ app.get("/urls/new", (req, res) => {
 
 
 //gets the registration page for new users
-app.get("/urls/register", (req, res) => {
-  const exports = { username: users[req.session.userId], urls: urlDatabase };
+app.get("/register", (req, res) => {
+  const userCookie = req.session.userId;
+  const exports = { username: users[userCookie], urls: urlDatabase };
   
   //If user is already logged in it sends them to their URLs table
-  if (req.session.userId) {
+  if (userCookie) {
     return res.redirect("/urls/");
   }
 
@@ -78,11 +80,12 @@ app.get("/urls/register", (req, res) => {
 
 
 //gets the login page
-app.get("/urls/login", (req, res) => {
-  const exports = { username: users[req.session.userId], urls: urlDatabase };
+app.get("/login", (req, res) => {
+  const userCookie = req.session.userId;
+  const exports = { username: users[userCookie], urls: urlDatabase };
 
   //if user is already logged in it redirects to the URLS table
-  if (req.session.userId) {
+  if (userCookie) {
     return res.redirect("/urls/");
   }
 
@@ -95,11 +98,11 @@ app.get("/urls/login", (req, res) => {
 
 //gets the page to show show the long URL for given short URL
 app.get("/urls/:id", (req, res) => {
-  
+  const userCookie = req.session.userId
   const id = req.params.id;
 
   //If user is not logged in sends a message asking them to login
-  if (!req.session.userId) {
+  if (!userCookie) {
     return res.send("You must log in first");
   }
   //If user gives invalid short URL sends message that it does not exist
@@ -107,11 +110,11 @@ app.get("/urls/:id", (req, res) => {
     return res.send("This URL does not exist");
   }
   //If the short URL does not belong to logged in user it tells them with a message
-  if (req.session.userId !== urlDatabase[id].userID) {
+  if (userCookie !== urlDatabase[id].userID) {
     return res.send("You do not own this URL");
   }
 
-  const exports = { username: users[req.session.userId].email, id: id, longURL: urlDatabase[id].longURL};
+  const exports = { username: users[userCookie].email, id: id, longURL: urlDatabase[id].longURL};
   res.render("urls_show", exports);
 });
 
@@ -123,13 +126,17 @@ app.get("/urls/:id", (req, res) => {
 
 //User inputs url and is redirected to short URL page
 app.post("/urls", (req, res) => {
+  const userCookie = req.session.userId;
   //If user is not logged in it asks them to login first
-  if (!req.session.userId) {
+  if (!userCookie) {
     return res.send("You must log in first");
   }
 
+  let userUrl = req.body.longURL;
+  const checkedUrl = ensureUrlProtocol(userUrl)
+
   let id = generateRandomString();
-  urlDatabase[id] = { longURL: req.body.longURL, userID: users[req.session.userId].id };
+  urlDatabase[id] = { longURL: checkedUrl, userID: users[userCookie].id };
   res.redirect(`/urls/${id}`);
 });
 
@@ -153,17 +160,17 @@ app.get("/u/:id", (req, res) => {
 // Delete button created for links and deletes from urlDatabase obj
 app.post('/urls/:id/delete', (req, res) => {
   const id = req.params.id;
-  
+  const userCookie = req.session.userId;
   //If URL does not exist command prints error
   if (!urlDatabase[id]) {
     return res.send("This URL does not exist");
   }
   //If user is not logged in command line prints error
-  if (!req.session.userId) {
+  if (!userCookie) {
     return res.send("You must log in first");
   }
   //If user does not own URL command line prints error
-  if (req.session.userId !== urlDatabase[id].userID) {
+  if (userCookie !== urlDatabase[id].userID) {
     return res.send("You do not own this URL");
   }
   //when user clicks it deletes this url from the urlDatabase
@@ -177,9 +184,9 @@ app.post('/urls/:id/delete', (req, res) => {
 // Allows user to update the old long URL
 app.post('/urls/:id', (req, res) => {
   const id = req.params.id;
- 
+  const userCookie = req.session.userId;
   //If user is not logged in commant line prints error
-  if (!req.session.userId) {
+  if (!userCookie) {
     return res.send("You must log in first");
   }
 
@@ -189,11 +196,12 @@ app.post('/urls/:id', (req, res) => {
   }
   
   //if user does not own url command line prints error
-  if (req.session.userId !== urlDatabase[id].userID) {
+  if (userCookie !== urlDatabase[id].userID) {
     return res.send("You do not own this URL");
   }
-
-  urlDatabase[id].longURL = req.body.longURL;
+  const usersUrl = req.body.longURL;
+  const checkedUrl = ensureUrlProtocol(usersUrl)
+  urlDatabase[id].longURL = checkedUrl;
   res.redirect('/urls/');
 });
 
@@ -230,7 +238,7 @@ app.post('/login', (req, res) => {
 //logs user out and clears the login cookie
 app.post('/logout', (req, res) => {
   req.session = null;
-  res.redirect('/urls/login');
+  res.redirect('/login');
 });
 
 

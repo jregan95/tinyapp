@@ -30,6 +30,16 @@ const urlsForUser = function(data, cookieInfo) {
   return newObj;
 };
 
+//Checks to ensure users put a protocol before Url
+const ensureUrlProtocol = function(url) {
+
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('ftp://')) {
+  return url;
+  }
+  return `http://${url}`;
+  
+}
 
 
-module.exports = {generateRandomString, findUserByEmail, urlsForUser};
+
+module.exports = {generateRandomString, findUserByEmail, urlsForUser, ensureUrlProtocol};
