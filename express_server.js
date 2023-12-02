@@ -26,8 +26,9 @@ app.use(cookieSession({
 
 
 
-// Posts our long and short urls to a table
+// GET the url table page. If user is logged in a table will display their specific url info.
 app.get("/urls", (req, res) => {
+  //Declares userCookie as the cookie-sessions cookie
   let userCookie = req.session.userId;
 
   //checks if user is not logged in and if not will route them to the login page
@@ -37,6 +38,7 @@ app.get("/urls", (req, res) => {
   
   //Execute function to create new database
   const newData = urlsForUser(urlDatabase, userCookie);
+  
   const exports = { username: users[userCookie].email, urls: newData };
   res.render("urls_index", exports);
 });
@@ -46,14 +48,16 @@ app.get("/urls", (req, res) => {
 
 
 
-//Gets the page for urls_new
+//GET the page for users to create a new url
 app.get("/urls/new", (req, res) => {
+  //Declares userCookie as the cookie-sessions cookie
   const userCookie = req.session.userId;
+
   //if user is not logged in redirect them to login
   if (!userCookie) {
     return res.redirect("/login");
   }
-
+  
   const exports = { username: users[userCookie].email};
   res.render("urls_new", exports);
 });
@@ -79,7 +83,7 @@ app.get("/register", (req, res) => {
 
 
 
-//gets the login page
+//GET the login page
 app.get("/login", (req, res) => {
   const userCookie = req.session.userId;
   const exports = { username: users[userCookie], urls: urlDatabase };
@@ -96,7 +100,7 @@ app.get("/login", (req, res) => {
 
 
 
-//gets the page to show show the long URL for given short URL
+//GET the page to show show the long URL for given short URL
 app.get("/urls/:id", (req, res) => {
   const userCookie = req.session.userId
   const id = req.params.id;
