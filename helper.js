@@ -40,6 +40,12 @@ const ensureUrlProtocol = function(url) {
   
 }
 
+//Pushes the date the URL was created into the URL database
+const makeTodaysDate = function() {
+  let createdDate = new Date().toISOString().slice(0, 10);
+  return createdDate;
+}
 
 
-module.exports = {generateRandomString, findUserByEmail, urlsForUser, ensureUrlProtocol};
+
+module.exports = {makeTodaysDate, generateRandomString, findUserByEmail, urlsForUser, ensureUrlProtocol};

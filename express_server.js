@@ -1,6 +1,6 @@
 const express = require('express');
 const {urlDatabase, users} = require('./database');
-const {ensureUrlProtocol, generateRandomString, findUserByEmail, urlsForUser} = require('./helper');
+const {makeTodaysDate, ensureUrlProtocol, generateRandomString, findUserByEmail, urlsForUser} = require('./helper');
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
 const { use } = require('chai');
@@ -136,7 +136,9 @@ app.post("/urls", (req, res) => {
   const checkedUrl = ensureUrlProtocol(userUrl)
 
   let id = generateRandomString();
-  urlDatabase[id] = { longURL: checkedUrl, userID: users[userCookie].id };
+
+  let todaysDate = makeTodaysDate();
+  urlDatabase[id] = { longURL: checkedUrl, userID: users[userCookie].id, date: todaysDate };
   res.redirect(`/urls/${id}`);
 });
 

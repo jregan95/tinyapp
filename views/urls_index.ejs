@@ -25,6 +25,7 @@
           <tr>
             <th scope="col">Short URL ID</th>
             <th scope="col">Long URL</th>
+            <th scope="col">Date Created</th>
             <th scope="col">Edit</th>
             <th scope="col">Delete</th>
             
@@ -38,6 +39,7 @@
               <td><%= id %></td>
           
               <td><%= urls[id].longURL %></td>
+              <td><%= urls[id].date %></td>
               <form method="GET" action="/urls/<%= id %>">
                 <td><button type="submit" class="btn btn-primary">Edit</button></td>
               </form>
@@ -49,9 +51,15 @@
             </tr>
           <% } %>
           
-          
         </tbody>
       </table>
+      <div class="card-footer text-muted" style="padding-top: 20px;">
+        <label class="card-title">Don't see your URL? Click the button below to add it!</label>
+        <form method="GET" action="/urls/new/">
+          <td><button type="submit" class="btn btn-secondary">Add New URL</button></td>
+        </form>
+      </div>
+      <hr>
     </main>
     <!-- Bootstrap JS -->
     <script
