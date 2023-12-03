@@ -154,10 +154,14 @@ app.post("/urls", (req, res) => {
 // When user clicks short URL they are redirected to the longURL website
 app.get("/u/:id", (req, res) => {
   //longURL = urlDatabase object[short Url ID key][longURL]
+  
+  if (!urlDatabase[req.params.id]) {
+    return res.send("This URL does not exist");
+  }
   const longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL);
 });
-
+ 
 
 
 
@@ -218,7 +222,12 @@ app.post('/urls/:id', (req, res) => {
 
 //Create a login and save it as a cookie
 app.post('/login', (req, res) => {
+
   const {email, password} = req.body;
+
+  if(!email || !password) {
+    res.status(403).send('Please fill out both email and password fields');
+  }
   //finds the user in the database
   const userLogin = findUserByEmail(email, users);
   
